@@ -21,14 +21,14 @@ const handlerReadiness = (req: Request, res: Response) => {
   res.send("OK");
 };
 
-app.get("/healthz", handlerReadiness);
+app.get("/api/healthz", handlerReadiness);
 
 const handlerMetrics = (req: Request, res: Response) => {
   res.set("Content-Type", "text/plain; charset=utf-8");
   res.send(`Hits: ${config.fileserverHits}`);
 };
 
-app.get("/metrics", handlerMetrics);
+app.get("/api/metrics", handlerMetrics);
 
 const handlerReset = (req: Request, res: Response) => {
   config.fileserverHits = 0;
@@ -36,7 +36,7 @@ const handlerReset = (req: Request, res: Response) => {
   res.send(`Hits reset to 0`);
 };
 
-app.get("/reset", handlerReset);
+app.get("/api/reset", handlerReset);
 
 const middlewareLogResponses = (
   req: Request,
