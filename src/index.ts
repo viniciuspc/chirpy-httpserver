@@ -42,7 +42,7 @@ const handlerReset = (req: Request, res: Response) => {
   res.send(`Hits reset to 0`);
 };
 
-app.get("/admin/reset", handlerReset);
+app.post("/admin/reset", handlerReset);
 
 const middlewareLogResponses = (
   req: Request,
