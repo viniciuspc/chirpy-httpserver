@@ -11,6 +11,7 @@ function middlewareMetricsInc(req: Request, res: Response, next: NextFunction) {
 }
 
 app.use("/app", middlewareMetricsInc, express.static("./src/app"));
+app.use(express.json());
 
 app.listen(PORT, () => {
   console.log(`Server is running at http://localhost:${PORT}`);
@@ -45,34 +46,19 @@ const handlerReset = (req: Request, res: Response) => {
 app.post("/admin/reset", handlerReset);
 
 async function handlerValidateChirp(req: Request, res: Response) {
-  let body = ""; // 1. Initialize
+  type parameters = {
+    body: string;
+  };
 
-  //2. Listen for data events
-  req.on("data", (chunk) => {
-    body += chunk;
-  });
+  const params: parameters = req.body;
 
-  //3. Listen for end events
-  req.on("end", () => {
-    res.header("Content-Type", "application/json");
-    try {
-      const parsedBody = JSON.parse(body);
-      if(!parsedBody.body){
-        res.status(400).send(JSON.stringify({"error": "Something went wrong"})); 
-        return; 
-      }
-
-      if(parsedBody.body.length > 140) {
-        res.status(400).send(JSON.stringify({"error": "Chirp is too long"})); 
-        return; 
-      } else {
-         res.status(200).send(JSON.stringify({"valid": true})); 
-        return; 
-      }
-    } catch (error) {
-     res.status(400).send(JSON.stringify({"error": "Something went wrong"})); 
-    }
-  });
+  if (params.body.length > 140) {
+    res.status(400).send(JSON.stringify({ error: "Chirp is too long" }));
+    return;
+  } else {
+    res.status(200).send(JSON.stringify({ valid: true }));
+    return;
+  }
 }
 
 app.post("/api/validate_chirp", handlerValidateChirp);
@@ -93,4 +79,4 @@ const middlewareLogResponses = (
   next();
 };
 
-app.use(middlewareLogResponses );
+app.use(middlewareLogResponses);
