@@ -56,7 +56,23 @@ async function handlerValidateChirp(req: Request, res: Response) {
     res.status(400).send(JSON.stringify({ error: "Chirp is too long" }));
     return;
   } else {
-    res.status(200).send(JSON.stringify({ valid: true }));
+    const profaneWords = ["kerfuffle", "sharbert", "fornax"];
+    const chirpyWords = params.body.split(" ");
+    
+    const profaneIndexes: number[] = [];
+    
+    for(let i = 0; i < chirpyWords.length; i++) {
+      const word = chirpyWords[i]
+      if(profaneWords.includes(word.toLowerCase())){
+        profaneIndexes.push(i);
+      } 
+    }
+
+    for(const index of profaneIndexes){
+      chirpyWords[index] = "****";
+    }
+
+    res.status(200).send(JSON.stringify({ cleanedBody: chirpyWords.join(" ") }));
     return;
   }
 }
