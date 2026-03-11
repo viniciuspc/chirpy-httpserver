@@ -12,7 +12,7 @@ import { migrate } from "drizzle-orm/postgres-js/migrator";
 import { drizzle } from "drizzle-orm/postgres-js";
 import { NewChirpy, NewUser } from "./db/schema.js";
 import { createUser, deleteAllUsers } from "./db/queries/users.js";
-import { createChirpy } from "./db/queries/chirps.js";
+import { createChirpy, listAllChirps } from "./db/queries/chirps.js";
 
 const app = express();
 const PORT = 8080;
@@ -113,6 +113,14 @@ app.post("/api/chirps", async (req, res, next) => {
     next(err);
   }
 });
+
+async function handlerListAllChirps(req: Request, res: Response) {
+  const chirps: NewChirpy[] = await listAllChirps();
+
+  res.status(200).send(JSON.stringify(chirps));
+}
+
+app.get("/api/chirps", handlerListAllChirps);
 
 // Users
 
