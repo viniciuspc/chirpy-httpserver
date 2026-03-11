@@ -2,9 +2,17 @@ import postgres from "postgres";
 import express from "express";
 import { Request, Response, NextFunction } from "express";
 import { config } from "./config.js";
-import { BadRequestError, ForbiddenError, NotFoundError, UnauthorizedError } from "./errors.js";
-import { migrate } from "drizzle-orm/postgres-js/migrator"
+import {
+  BadRequestError,
+  ForbiddenError,
+  NotFoundError,
+  UnauthorizedError,
+} from "./errors.js";
+import { migrate } from "drizzle-orm/postgres-js/migrator";
 import { drizzle } from "drizzle-orm/postgres-js";
+import { NewUser } from "./db/schema.js";
+import { createUser, deleteAllUsers } from "./db/queries/users.js";
+import { throws } from "node:assert";
 
 const app = express();
 const PORT = 8080;
@@ -40,13 +48,27 @@ const handlerMetrics = (req: Request, res: Response) => {
 
 app.get("/admin/metrics", handlerMetrics);
 
-const handlerReset = (req: Request, res: Response) => {
+const handlerReset = async (req: Request, res: Response) => {
+  const { platform } = config.api;
+
+  if (platform != "dev") {
+    throw new ForbiddenError("Reset endpoint only allowed in dev.");
+  }
+  
+  await deleteAllUsers();
+
   config.api.fileserverHits = 0;
   res.set("Content-Type", "text/plain; charset=utf-8");
   res.send(`Hits reset to 0`);
 };
 
-app.post("/admin/reset", handlerReset);
+app.post("/admin/reset", async (req, res, next) => {
+  try {
+    handlerReset(req, res);
+  } catch (err) {
+    next(err);
+  }
+});
 
 async function handlerValidateChirp(req: Request, res: Response) {
   type parameters = {
@@ -60,32 +82,65 @@ async function handlerValidateChirp(req: Request, res: Response) {
   } else {
     const profaneWords = ["kerfuffle", "sharbert", "fornax"];
     const chirpyWords = params.body.split(" ");
-    
+
     const profaneIndexes: number[] = [];
-    
-    for(let i = 0; i < chirpyWords.length; i++) {
-      const word = chirpyWords[i]
-      if(profaneWords.includes(word.toLowerCase())){
+
+    for (let i = 0; i < chirpyWords.length; i++) {
+      const word = chirpyWords[i];
+      if (profaneWords.includes(word.toLowerCase())) {
         profaneIndexes.push(i);
-      } 
+      }
     }
 
-    for(const index of profaneIndexes){
+    for (const index of profaneIndexes) {
       chirpyWords[index] = "****";
     }
 
-    res.status(200).send(JSON.stringify({ cleanedBody: chirpyWords.join(" ") }));
+    res
+      .status(200)
+      .send(JSON.stringify({ cleanedBody: chirpyWords.join(" ") }));
     return;
   }
 }
 
-app.post("/api/validate_chirp", async (req, res, next) => { 
+app.post("/api/validate_chirp", async (req, res, next) => {
   try {
     await handlerValidateChirp(req, res);
   } catch (err) {
     next(err);
   }
 });
+
+// Users
+
+async function handlerCreateUser(req: Request, res: Response) {
+  type parameters = {
+    email: string;
+  };
+
+  const params: parameters = req.body;
+  const email = params.email;
+  
+  if (!email) {
+    throw new BadRequestError("Provide an email to create a new user.");
+  }
+
+  const newUser: NewUser = { email: params.email };
+
+  const createdUser: NewUser = await createUser(newUser);
+
+  res.status(201).send(JSON.stringify(createdUser));
+}
+
+app.post("/api/users", async (req, res, next) => {
+  try {
+    await handlerCreateUser(req, res);
+  } catch (err) {
+    next(err);
+  }
+});
+
+//Middlewares
 
 const middlewareLogResponses = (
   req: Request,
@@ -112,31 +167,31 @@ function errorHandler(
   next: NextFunction,
 ) {
   console.log(err);
-  if(err instanceof BadRequestError) {
+  if (err instanceof BadRequestError) {
     res.status(400).json({
-      error: err.message
-    })
+      error: err.message,
+    });
     return;
   }
-  if(err instanceof UnauthorizedError) {
+  if (err instanceof UnauthorizedError) {
     res.status(401).json({
-      error: err.message
-    })
+      error: err.message,
+    });
     return;
   }
-  if(err instanceof ForbiddenError) {
+  if (err instanceof ForbiddenError) {
     res.status(403).json({
-      error: err.message
-    })
+      error: err.message,
+    });
     return;
   }
-  if(err instanceof NotFoundError) {
+  if (err instanceof NotFoundError) {
     res.status(404).json({
-      error: err.message
-    })
+      error: err.message,
+    });
     return;
   }
- 
+
   res.status(500).json({
     error: "Something went wrong on our end",
   });
@@ -147,5 +202,3 @@ app.use(errorHandler);
 app.listen(PORT, () => {
   console.log(`Server is running at http://localhost:${PORT}`);
 });
-
-
