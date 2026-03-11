@@ -1,13 +1,19 @@
+import postgres from "postgres";
 import express from "express";
 import { Request, Response, NextFunction } from "express";
 import { config } from "./config.js";
 import { BadRequestError, ForbiddenError, NotFoundError, UnauthorizedError } from "./errors.js";
+import { migrate } from "drizzle-orm/postgres-js/migrator"
+import { drizzle } from "drizzle-orm/postgres-js";
 
 const app = express();
 const PORT = 8080;
 
+const migrationClient = postgres(config.db.url, { max: 1 });
+await migrate(drizzle(migrationClient), config.db.migrationConfig);
+
 function middlewareMetricsInc(req: Request, res: Response, next: NextFunction) {
-  config.fileserverHits++;
+  config.api.fileserverHits++;
   next();
 }
 
@@ -27,7 +33,7 @@ const handlerMetrics = (req: Request, res: Response) => {
 <html>
   <body>
     <h1>Welcome, Chirpy Admin</h1>
-    <p>Chirpy has been visited ${config.fileserverHits} times!</p>
+    <p>Chirpy has been visited ${config.api.fileserverHits} times!</p>
   </body>
 </html>`);
 };
@@ -35,7 +41,7 @@ const handlerMetrics = (req: Request, res: Response) => {
 app.get("/admin/metrics", handlerMetrics);
 
 const handlerReset = (req: Request, res: Response) => {
-  config.fileserverHits = 0;
+  config.api.fileserverHits = 0;
   res.set("Content-Type", "text/plain; charset=utf-8");
   res.send(`Hits reset to 0`);
 };
