@@ -10,9 +10,9 @@ import {
 } from "./errors.js";
 import { migrate } from "drizzle-orm/postgres-js/migrator";
 import { drizzle } from "drizzle-orm/postgres-js";
-import { NewUser } from "./db/schema.js";
+import { NewChirpy, NewUser } from "./db/schema.js";
 import { createUser, deleteAllUsers } from "./db/queries/users.js";
-import { throws } from "node:assert";
+import { createChirpy } from "./db/queries/chirps.js";
 
 const app = express();
 const PORT = 8080;
@@ -70,9 +70,10 @@ app.post("/admin/reset", async (req, res, next) => {
   }
 });
 
-async function handlerValidateChirp(req: Request, res: Response) {
+async function handlerCreateChirp(req: Request, res: Response) {
   type parameters = {
     body: string;
+    userId: string;
   };
 
   const params: parameters = req.body;
@@ -95,17 +96,19 @@ async function handlerValidateChirp(req: Request, res: Response) {
     for (const index of profaneIndexes) {
       chirpyWords[index] = "****";
     }
-
+    
+    const newChirpy: NewChirpy = {userId: params.userId, body: chirpyWords.join(" ")};    
+    const createdChirpy: NewChirpy = await createChirpy(newChirpy);
     res
-      .status(200)
-      .send(JSON.stringify({ cleanedBody: chirpyWords.join(" ") }));
+      .status(201)
+      .send(JSON.stringify(createdChirpy));
     return;
   }
 }
 
-app.post("/api/validate_chirp", async (req, res, next) => {
+app.post("/api/chirps", async (req, res, next) => {
   try {
-    await handlerValidateChirp(req, res);
+    await handlerCreateChirp(req, res);
   } catch (err) {
     next(err);
   }
