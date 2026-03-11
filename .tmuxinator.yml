@@ -1,0 +1,10 @@
+# ./.tmuxinator.yml
+
+name: chirpy
+root: .
+
+windows:
+  - editor: nvim .
+  - server: npm run dev
+  - zsh:
+  - db: psql chirpy
