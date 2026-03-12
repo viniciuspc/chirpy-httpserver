@@ -11,7 +11,7 @@ import {
   middlewareLogResponse,
   middlewareMetricsInc,
 } from "./api/middleware.js";
-import { handlerCreateChirp, handlerListAllChirps } from "./api/chirps.js";
+import { handlerCreateChirp, handlerGetChirpy, handlerListAllChirps } from "./api/chirps.js";
 import { config } from "./config.js";
 import { handlerCreateUser } from "./api/users.js";
 
@@ -45,6 +45,10 @@ app.post("/api/chirps", (req, res, next) => {
 app.get("/api/chirps", (req, res, next) => {
   Promise.resolve(handlerListAllChirps(req, res)).catch(next);
 });
+app.get("/api/chirps/:chirpyId", (req, res, next) => {
+  Promise.resolve(handlerGetChirpy(req, res)).catch(next);
+});
+
 
 app.use(errorMiddleWare);
 

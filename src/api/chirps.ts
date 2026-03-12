@@ -1,8 +1,8 @@
 import type { Request, Response } from "express";
 
 import { respondWithJSON } from "./json.js";
-import { createChirpy, listAllChirps } from "../db/queries/chirps.js";
-import { BadRequestError } from "./errors.js";
+import { createChirpy, getChirpy, listAllChirps } from "../db/queries/chirps.js";
+import { BadRequestError, NotFoundError } from "./errors.js";
 import { NewChirpy } from "src/db/schema.js";
 
 export async function handlerCreateChirp(req: Request, res: Response) {
@@ -57,4 +57,20 @@ export async function handlerListAllChirps(_: Request, res: Response) {
   respondWithJSON(res, 200, chirps)
 }
 
+export async function handlerGetChirpy(req: Request, res: Response) {
+  const chirpyId = req.params.chirpyId;
+  
+  if(Array.isArray(chirpyId)){
+    throw new BadRequestError("Only one chirpy id is allowed.")   
+  }
 
+
+  const chirpy = await getChirpy(chirpyId);
+
+  if(!chirpy) {
+    throw new NotFoundError(`Can't fin chirpy with id ${chirpyId}`);
+  }
+
+  respondWithJSON(res, 200, chirpy);
+  
+}
