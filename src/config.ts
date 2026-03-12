@@ -4,6 +4,7 @@ process.loadEnvFile();
 
 type APIConfig = {
   fileserverHits: number;
+  port: number;
   platform: string | "dev";
 };
 
@@ -23,6 +24,7 @@ const migrationConfig: MigrationConfig = {
 
 const apiConfig: APIConfig = {
   fileserverHits: 0,
+  port: Number(envOrThrow("PORT")),
   platform: envOrThrow("PLATFORM")
 };
 
