@@ -6,7 +6,12 @@ import { checkPasswordHash, makeJWT } from "../auth.js";
 import { getUserByEmail } from "../db/queries/users.js";
 import { NewUser } from "../db/schema.js";
 import { config } from "../config.js";
+import { UserResponse } from "./users.js";
 
+
+type LoginResponse = UserResponse & {
+  token: string;
+};
 
 export async function handlerLogin(req: Request, res: Response) {
   type parameters = {
@@ -33,13 +38,13 @@ export async function handlerLogin(req: Request, res: Response) {
     throw new UnauthorizedError("incorrect email or password");
   }
 
-  let maxExpiresInSeconds: number = 60 * 60; // 1 Hour
+  let duration: number = config.jwt.defaultDuration;
   
-  if(params.expiresInSeconds && params.expiresInSeconds < maxExpiresInSeconds) {
-    maxExpiresInSeconds = params.expiresInSeconds;
+  if(params.expiresInSeconds && params.expiresInSeconds < config.jwt.defaultDuration) {
+    duration = params.expiresInSeconds;
   }
   
-  const token = makeJWT(user.id, maxExpiresInSeconds, config.api.secret);   
+  const token = makeJWT(user.id, duration, config.jwt.secret);   
 
   respondWithJSON(res, 200, {
     id: user.id,
@@ -47,7 +52,7 @@ export async function handlerLogin(req: Request, res: Response) {
     updatedAt: user.updatedAt,
     email: user.email,
     token: token
-  })
+  } satisfies LoginResponse )
   
 
 }

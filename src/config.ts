@@ -5,8 +5,7 @@ process.loadEnvFile();
 type APIConfig = {
   fileserverHits: number;
   port: number;
-  platform: string | "dev";
-  secret: string;
+  platform: string;
 };
 
 type DBConfig = {
@@ -14,9 +13,16 @@ type DBConfig = {
  migrationConfig: MigrationConfig 
 }
 
+type JWTConfig = {
+  defaultDuration: number;
+  secret: string;
+  issuer: string;
+};
+
 type Config = {
   api: APIConfig,
-  db: DBConfig
+  db: DBConfig,
+  jwt: JWTConfig
 }
 
 const migrationConfig: MigrationConfig = {
@@ -27,12 +33,17 @@ const apiConfig: APIConfig = {
   fileserverHits: 0,
   port: Number(envOrThrow("PORT")),
   platform: envOrThrow("PLATFORM"),
-  secret: envOrThrow("SECRET")
 };
 
 const dbConfig: DBConfig = {
   url:  envOrThrow("DB_URL"),
   migrationConfig: migrationConfig
+}
+
+const jwtConfig: JWTConfig = {
+  defaultDuration: 60 * 60, // 1 hour in seconds
+  secret: envOrThrow("JWT_SECRET"),
+  issuer: "chirpy",
 }
 
 function envOrThrow(key: string){
@@ -47,5 +58,6 @@ function envOrThrow(key: string){
 
 export const config: Config = {
   api: apiConfig,
-  db: dbConfig
+  db: dbConfig,
+  jwt: jwtConfig
 }

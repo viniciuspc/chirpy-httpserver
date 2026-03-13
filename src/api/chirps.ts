@@ -13,7 +13,7 @@ export async function handlerCreateChirp(req: Request, res: Response) {
   };
 
   const token = getBearerToken(req);
-  const userId = validateJWT(token, config.api.secret) 
+  const userId = validateJWT(token, config.jwt.secret) 
   if(!userId){
     throw new ForbiddenError("Invalid JWT token when creating chirpy");
   }

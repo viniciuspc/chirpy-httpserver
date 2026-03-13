@@ -1,13 +1,12 @@
 import { describe, it, expect, beforeAll } from "vitest";
 import {
-  makeJWT,
-  validateJWT,
   hashPassword,
   checkPasswordHash,
-  getBearerToken,
+  makeJWT,
+  validateJWT,
+  extractBearerToken,
 } from "../auth.js";
-import { ForbiddenError } from "../api/errors.js";
-import { Request } from "express";
+import { BadRequestError, ForbiddenError } from "../api/errors.js";
 
 describe("Password Hashing", () => {
   const password1 = "correctPassword123!";
@@ -24,33 +23,81 @@ describe("Password Hashing", () => {
     const result = await checkPasswordHash(password1, hash1);
     expect(result).toBe(true);
   });
-});
 
-describe("Create JWT", () => {
-  const userId = "123456";
-  const expiresIn = 1000;
-  const signature = "supersecretsignature";
-
-  const expiredId = "7890"
-  const expiresInNow = 0;
-  const expiredSignature = "expiresupersecretsignature"
-
-  let tokenString: string;
-  let expiredString: string;
-
-  beforeAll(async () => {
-    tokenString = makeJWT(userId, expiresIn, signature);
-    expiredString = makeJWT(expiredId, expiresInNow, expiredSignature);
+  it("should return false for an incorrect password", async () => {
+    const result = await checkPasswordHash("wrongPassword", hash1);
+    expect(result).toBe(false);
   });
 
-  it("should return userId to a valid JWT", async () => {
-    const result = validateJWT(tokenString, signature);
-    expect(result).toBe(userId);
+  it("should return false when password doesn't match a different hash", async () => {
+    const result = await checkPasswordHash(password1, hash2);
+    expect(result).toBe(false);
   });
 
-  it("should throw exception for an expired token", async () => {
-    expect(() => validateJWT(expiredString, expiredSignature)).toThrow(ForbiddenError);
-    
+  it("should return false for an empty password", async () => {
+    const result = await checkPasswordHash("", hash1);
+    expect(result).toBe(false);
+  });
+
+  it("should return false for an invalid hash", async () => {
+    const result = await checkPasswordHash(password1, "invalidhash");
+    expect(result).toBe(false);
   });
 });
 
+describe("JWT Functions", () => {
+  const secret = "secret";
+  const wrongSecret = "wrong_secret";
+  const userID = "some-unique-user-id";
+  let validToken: string;
+
+  beforeAll(() => {
+    validToken = makeJWT(userID, 3600, secret);
+  });
+
+  it("should validate a valid token", () => {
+    const result = validateJWT(validToken, secret);
+    expect(result).toBe(userID);
+  });
+
+  it("should throw an error for an invalid token string", () => {
+    expect(() => validateJWT("invalid.token.string", secret)).toThrow(
+      ForbiddenError,
+    );
+  });
+
+  it("should throw an error when the token is signed with a wrong secret", () => {
+    expect(() => validateJWT(validToken, wrongSecret)).toThrow(
+      ForbiddenError,
+    );
+  });
+});
+
+describe("extractBearerToken", () => {
+  it("should extract the token from a valid header", () => {
+    const token = "mySecretToken";
+    const header = `Bearer ${token}`;
+    expect(extractBearerToken(header)).toBe(token);
+  });
+
+  it("should extract the token even if there are extra parts", () => {
+    const token = "mySecretToken";
+    const header = `Bearer ${token} extra-data`;
+    expect(extractBearerToken(header)).toBe(token);
+  });
+
+  it("should throw a BadRequestError if the header does not contain at least two parts", () => {
+    const header = "Bearer";
+    expect(() => extractBearerToken(header)).toThrow(BadRequestError);
+  });
+
+  it('should throw a BadRequestError if the header does not start with "Bearer"', () => {
+    const header = "Basic mySecretToken";
+    expect(() => extractBearerToken(header)).toThrow(BadRequestError);
+  });
+
+  it("should throw a BadRequestError if the header is an empty string", () => {
+    const header = "";
+    expect(() => extractBearerToken(header)).toThrow(BadRequestError);
+  });
+});
