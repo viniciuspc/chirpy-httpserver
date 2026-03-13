@@ -2,21 +2,28 @@ import type { Request, Response } from "express";
 
 import { respondWithJSON } from "./json.js";
 import { createChirpy, getChirpy, listAllChirps } from "../db/queries/chirps.js";
-import { BadRequestError, NotFoundError } from "./errors.js";
-import { NewChirpy } from "src/db/schema.js";
+import { BadRequestError, ForbiddenError, NotFoundError } from "./errors.js";
+import { NewChirpy } from "../db/schema.js";
+import { getBearerToken, validateJWT } from "../auth.js";
+import { config } from "../config.js";
 
 export async function handlerCreateChirp(req: Request, res: Response) {
   type parameters = {
     body: string;
-    userId: string;
   };
+
+  const token = getBearerToken(req);
+  const userId = validateJWT(token, config.api.secret) 
+  if(!userId){
+    throw new ForbiddenError("Invalid JWT token when creating chirpy");
+  }
 
   const params: parameters = req.body;
 
   const cleaned = validateChirp(params.body);
 
   const newChirpy: NewChirpy = {
-    userId: params.userId,
+    userId: userId,
     body: cleaned,
   };
   const createdChirpy: NewChirpy = await createChirpy(newChirpy);

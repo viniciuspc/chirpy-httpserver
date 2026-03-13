@@ -4,8 +4,10 @@ import {
   validateJWT,
   hashPassword,
   checkPasswordHash,
+  getBearerToken,
 } from "../auth.js";
 import { ForbiddenError } from "../api/errors.js";
+import { Request } from "express";
 
 describe("Password Hashing", () => {
   const password1 = "correctPassword123!";
@@ -51,3 +53,4 @@ describe("Create JWT", () => {
     
   });
 });
+

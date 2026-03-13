@@ -6,6 +6,7 @@ type APIConfig = {
   fileserverHits: number;
   port: number;
   platform: string | "dev";
+  secret: string;
 };
 
 type DBConfig = {
@@ -25,7 +26,8 @@ const migrationConfig: MigrationConfig = {
 const apiConfig: APIConfig = {
   fileserverHits: 0,
   port: Number(envOrThrow("PORT")),
-  platform: envOrThrow("PLATFORM")
+  platform: envOrThrow("PLATFORM"),
+  secret: envOrThrow("SECRET")
 };
 
 const dbConfig: DBConfig = {
